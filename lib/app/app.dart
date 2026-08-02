@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:library_management_system/screens/Splash_screen.dart';
 
 import '../screens/homescreen.dart';
 
@@ -9,8 +10,8 @@ class LibraryManagementSystem extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Firebase App',
-      home: const MyHomePage(),
+      title: 'Library_management_system',
+      home: SplashScreen(),
 
     );
   }
