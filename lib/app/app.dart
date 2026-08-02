@@ -12,6 +12,17 @@ class LibraryManagementSystem extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Library_management_system',
       home: SplashScreen(),
+      initialRoute: SplashScreen.name,
+      onGenerateRoute: (settings) {
+        late Widget screen;
+        if(settings.name == SplashScreen.name){
+          screen = SplashScreen();
+        } else if(settings.name == HomeScreen.name){
+          screen = HomeScreen();
+        }
+
+        return MaterialPageRoute(builder: (ctx)=> screen);
+      },
 
     );
   }
