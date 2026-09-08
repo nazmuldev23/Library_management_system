@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:library_management_system/models/user_model.dart';
+import 'package:library_management_system/screens/main_navigation_screen.dart';
+import 'package:library_management_system/services/auth_service.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -11,76 +15,153 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   String selectedRole = "Admin";
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool isLoading = false;
 
-  Map<String, IconData> roleIcons = {
+  final Map<String, IconData> roleIcons = {
     "Admin": Icons.admin_panel_settings,
     "Librarian": Icons.menu_book,
     "Student / User": Icons.school,
   };
 
   @override
+  void initState() {
+    super.initState();
+    _updateDefaultEmail("Admin");
+  }
+
+  void _updateDefaultEmail(String role) {
+    if (role == "Admin") {
+      emailController.text = "admin@library.com";
+    } else if (role == "Librarian") {
+      emailController.text = "librarian@library.com";
+    } else {
+      emailController.text = "student@library.com";
+    }
+    passwordController.text = "password123";
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() async {
+    if (emailController.text.trim().isEmpty) {
+      Get.snackbar('Error', 'Please enter email address',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900);
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    final authService = Get.find<AuthService>();
+    final role = UserModel.roleFromString(selectedRole);
+
+    await authService.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+      role,
+    );
+
+    setState(() {
+      isLoading = false;
+    });
+
+    Get.offAll(() => const MainNavigationScreen());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: 50),
-              Image.asset('assets/welcome.png', width: 250, height: 250),
-              Text(
+              const SizedBox(height: 20),
+              Center(
+                child: Image.asset(
+                  'assets/welcome.png',
+                  width: 180,
+                  height: 180,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 140,
+                    width: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.menu_book_rounded,
+                      size: 80,
+                      color: Colors.indigo.shade700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
                 "Welcome to",
-                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.black87),
               ),
               Text(
                 'Library Management System',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[900],
+                  color: Colors.indigo.shade900,
                 ),
               ),
-              Text(
-                'Please selest your role to continue',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+              const SizedBox(height: 6),
+              const Text(
+                'Please select your role to continue',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Role',
-                  textAlign: TextAlign.start,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+              const SizedBox(height: 30),
+              const Text(
+                'Role',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
-              SizedBox(height: 5),
+              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: selectedRole,
+                initialValue: selectedRole,
                 borderRadius: BorderRadius.circular(16),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Colors.grey.shade50,
                   prefixIcon: Icon(
                     roleIcons[selectedRole],
-                    color: Colors.deepPurple,
+                    color: Colors.indigo,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 18,
+                    vertical: 16,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                      color: Colors.deepPurple,
+                      color: Colors.indigo,
                       width: 1.5,
                     ),
                   ),
@@ -90,36 +171,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   return DropdownMenuItem(value: role, child: Text(role));
                 }).toList(),
                 onChanged: (value) {
-                  setState(() {
-                    selectedRole = value!;
-                  });
+                  if (value != null) {
+                    setState(() {
+                      selectedRole = value;
+                      _updateDefaultEmail(value);
+                    });
+                  }
                 },
               ),
-              SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Email',
-                  textAlign: TextAlign.start,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+              const SizedBox(height: 20),
+              const Text(
+                'Email',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
+              const SizedBox(height: 8),
               TextField(
+                controller: emailController,
                 decoration: InputDecoration(
                   hintText: "Enter your Email",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
                   prefixIcon: const Icon(
                     Icons.email_outlined,
                     color: Colors.grey,
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Colors.grey.shade50,
                   contentPadding: const EdgeInsets.symmetric(
-                    vertical: 18,
+                    vertical: 16,
                     horizontal: 16,
                   ),
                   enabledBorder: OutlineInputBorder(
@@ -129,37 +211,36 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                      color: Colors.deepPurple,
+                      color: Colors.indigo,
                       width: 1.5,
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Password',
-                  textAlign: TextAlign.start,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+              const SizedBox(height: 20),
+              const Text(
+                'Password',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
+              const SizedBox(height: 8),
               TextField(
+                controller: passwordController,
+                obscureText: true,
                 decoration: InputDecoration(
                   hintText: "Enter your password",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
                   prefixIcon: const Icon(
                     Icons.lock_outline,
                     color: Colors.grey,
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Colors.grey.shade50,
                   contentPadding: const EdgeInsets.symmetric(
-                    vertical: 18,
+                    vertical: 16,
                     horizontal: 16,
                   ),
                   enabledBorder: OutlineInputBorder(
@@ -169,29 +250,38 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                      color: Colors.deepPurple,
+                      color: Colors.indigo,
                       width: 1.5,
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 50),
+              const SizedBox(height: 36),
               SizedBox(
-                width: double.infinity,
-                height: 55,
+                height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Continue action
-                  },
-                  label: const Text(
-                    "Continue",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  icon: const Icon(Icons.arrow_forward),
+                  onPressed: isLoading ? null : _handleLogin,
+                  label: isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          "Login as $selectedRole",
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                  icon: isLoading
+                      ? const SizedBox.shrink()
+                      : const Icon(Icons.arrow_forward),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade900,
+                    backgroundColor: Colors.indigo.shade800,
                     foregroundColor: Colors.white,
-                    elevation: 3,
+                    elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
